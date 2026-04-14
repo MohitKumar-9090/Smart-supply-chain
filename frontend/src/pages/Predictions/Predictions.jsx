@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { shipmentsApi, aiApi } from '../../services/api';
+import { shipmentsApi, aiApi, getApiData, getApiPayload } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './predictions.css';
 import { getRiskColor, getRiskLabel } from './predictionsData';
+
+const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
 
 const Predictions = () => {
   const navigate = useNavigate();
@@ -15,8 +17,19 @@ const Predictions = () => {
 
   useEffect(() => {
     shipmentsApi.getAll()
-      .then(res => setShipments(res.data || []))
-      .catch(() => toast.error('Failed to load shipments'))
+      .then((res) => {
+        const payload = getApiPayload(res);
+        const items = (getApiData(res, []) || []).map((s) => ({
+          ...s,
+          status: normalizeStatus(s.status),
+        }));
+        console.log('[Predictions] shipments response:', payload);
+        setShipments(items);
+      })
+      .catch((err) => {
+        console.error('[Predictions] failed to load shipments:', err.message);
+        toast.error('Failed to load shipments');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -24,8 +37,10 @@ const Predictions = () => {
     setRunning(prev => ({ ...prev, [id]: true }));
     try {
       const res = await aiApi.predict({ shipmentId: id });
-      setPredictions(prev => ({ ...prev, [id]: res.data }));
+      console.log('[Predictions] predict response:', getApiPayload(res));
+      setPredictions(prev => ({ ...prev, [id]: getApiData(res, {}) }));
     } catch (err) {
+      console.error(`[Predictions] prediction failed for ${id}:`, err.message);
       toast.error(`Prediction failed for ${id}`);
     } finally {
       setRunning(prev => ({ ...prev, [id]: false }));
@@ -88,7 +103,7 @@ const Predictions = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
-          {shipments.map(s => {
+          {(shipments || []).map(s => {
             const pred = predictions[s.id];
             const isRunning = running[s.id];
             const risk = pred?.delayProbability ?? s.riskLevel;

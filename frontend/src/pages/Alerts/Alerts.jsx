@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { alertsApi } from '../../services/api';
+import { alertsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './alerts.css';
 import { typeConfig } from './alertsData';
@@ -14,9 +14,13 @@ const Alerts = ({ onAlertCountChange }) => {
   const fetchAlerts = async () => {
     try {
       const res = await alertsApi.getAll();
-      setAlerts(res.data || []);
-      onAlertCountChange?.(res.unreadCount || 0);
+      const payload = getApiPayload(res);
+      const items = getApiData(res, []);
+      console.log('[Alerts] fetch response:', payload);
+      setAlerts(items || []);
+      onAlertCountChange?.(payload.unreadCount || 0);
     } catch (err) {
+      console.error('[Alerts] fetch failed:', err.message);
       toast.error('Failed to load alerts');
     } finally {
       setLoading(false);
@@ -58,11 +62,12 @@ const Alerts = ({ onAlertCountChange }) => {
     }
   };
 
-  const filtered = filter === 'all' ? alerts :
-    filter === 'unread' ? alerts.filter(a => !a.read) :
-    alerts.filter(a => a.type === filter);
+  const safeAlerts = alerts || [];
+  const filtered = filter === 'all' ? safeAlerts :
+    filter === 'unread' ? safeAlerts.filter(a => !a.read) :
+    safeAlerts.filter(a => a.type === filter);
 
-  const unreadCount = alerts.filter(a => !a.read).length;
+  const unreadCount = safeAlerts.filter(a => !a.read).length;
 
   return (
     <div className="page-content">
@@ -87,7 +92,7 @@ const Alerts = ({ onAlertCountChange }) => {
       <div className="card" style={{ marginBottom: '20px', padding: '14px 18px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { key: 'all', label: `All (${alerts.length})` },
+            { key: 'all', label: `All (${safeAlerts.length})` },
             { key: 'unread', label: `Unread (${unreadCount})` },
             { key: 'critical', label: '🔴 Critical' },
             { key: 'warning', label: '🟡 Warning' },

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsApi } from '../../services/api';
+import { shipmentsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './shipments.css';
 import { getStatusBadge, getRiskColor } from './shipmentsData';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../../config/firebase';
+
+const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
 const Shipments = () => {
   const navigate = useNavigate();
   const [shipments, setShipments] = useState([]);
@@ -21,9 +23,14 @@ const Shipments = () => {
   const fetchShipmentsFallback = async () => {
     try {
       const res = await shipmentsApi.getAll({ search, status: statusFilter });
-      const fallbackShipments = Array.isArray(res) ? res : (res?.data || []);
+      console.log('[Shipments] fallback response:', getApiPayload(res));
+      const fallbackShipments = (getApiData(res, []) || []).map((s) => ({
+        ...s,
+        status: normalizeStatus(s.status),
+      }));
       setShipments(fallbackShipments);
     } catch (err) {
+      console.error('[Shipments] fallback failed:', err.message);
       toast.error('Failed to load shipments (Fallback)');
     } finally {
       setLoading(false);
@@ -43,11 +50,14 @@ const Shipments = () => {
     const unsubscribe = onValue(shipmentsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        let results = Object.values(data);
+        let results = Object.values(data).map((s) => ({
+          ...s,
+          status: normalizeStatus(s.status),
+        }));
         
         // Apply frontend filtering for Realtime DB
         if (statusFilter !== 'all') {
-          results = results.filter(s => s.status === statusFilter);
+          results = results.filter(s => s.status === normalizeStatus(statusFilter));
         }
         if (search) {
           const q = search.toLowerCase();
@@ -98,6 +108,7 @@ const Shipments = () => {
       setForm({ origin: '', destination: '', cargo: '', weight: '', carrier: '', weather: 'Clear', traffic: 'Normal', description: '', status: 'on-time', riskLevel: 0 });
       fetchShipmentsFallback();
     } catch (err) {
+      console.error('[Shipments] save failed:', err.message);
       toast.error(err.message);
     }
   };
@@ -131,6 +142,7 @@ const Shipments = () => {
       toast.success('Shipment deleted');
       fetchShipmentsFallback();
     } catch (err) {
+      console.error('[Shipments] delete failed:', err.message);
       toast.error(err.message);
     }
   };
@@ -222,7 +234,7 @@ const Shipments = () => {
                 </tr>
               </thead>
               <tbody>
-                {shipments.map(s => (
+                {(shipments || []).map(s => (
                   <tr key={s.id} onClick={() => navigate(`/shipments/${s.id}`)}>
                     <td>
                       <div className="primary-text">{s.trackingNumber}</div>

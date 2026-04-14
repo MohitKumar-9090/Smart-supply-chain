@@ -5,3 +5,6 @@ export const statusConfig = {
   'risk': { label: 'AT RISK', class: 'badge-risk', icon: '⚠️' },
   'delayed': { label: 'DELAYED', class: 'badge-delayed', icon: '❌' },
 };
+
+export const normalizeStatus = (status) =>
+  String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');

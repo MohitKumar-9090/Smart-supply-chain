@@ -3,7 +3,7 @@
  */
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -23,12 +23,23 @@ api.interceptors.request.use(
 
 // Response interceptor (unified error handling)
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => response,
   (error) => {
     const msg = error.response?.data?.message || error.message || 'Request failed';
     return Promise.reject(new Error(msg));
   }
 );
+
+// API response helpers for backend shape: { success, data, ...meta }
+export const getApiPayload = (response) => response?.data || {};
+export const getApiData = (response, fallback = null) => {
+  const payload = getApiPayload(response);
+  return payload?.data ?? fallback;
+};
+
+if (import.meta.env.DEV) {
+  console.log('[API] Base URL:', API_BASE);
+}
 
 // ─── Shipments ───────────────────────────────
 export const shipmentsApi = {

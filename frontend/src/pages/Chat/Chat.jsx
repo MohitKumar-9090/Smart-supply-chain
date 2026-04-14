@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { aiApi } from '../../services/api';
+import { aiApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './chat.css';
 import { SUGGESTIONS, formatMessage } from './chatData';
@@ -36,14 +36,18 @@ const Chat = () => {
 
     try {
       const res = await aiApi.chat(text, history);
+      const payload = getApiPayload(res);
+      const data = getApiData(res, {});
+      console.log('[Chat] ai chat response:', payload);
       const aiMsg = {
         id: Date.now() + 1,
         role: 'ai',
-        content: res.data.message,
-        timestamp: new Date(res.data.timestamp),
+        content: data.message || 'No response message received.',
+        timestamp: new Date(data.timestamp || Date.now()),
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
+      console.error('[Chat] ai response failed:', err.message);
       toast.error('AI response failed: ' + err.message);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,

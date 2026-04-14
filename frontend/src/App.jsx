@@ -22,7 +22,7 @@ import RouteOptimizer from './pages/RouteOptimizer/RouteOptimizer';
 import Predictions from './pages/Predictions/Predictions';
 
 // Services
-import { alertsApi } from './services/api';
+import { alertsApi, getApiPayload } from './services/api';
 
 // Page metadata for header
 const PAGE_META = {
@@ -66,8 +66,14 @@ function App() {
   // Fetch initial unread alert count
   useEffect(() => {
     alertsApi.getAll({ unreadOnly: true })
-      .then(res => setAlertCount(res.unreadCount || 0))
-      .catch(() => {});
+      .then((res) => {
+        const payload = getApiPayload(res);
+        console.log('[App] unread alerts payload:', payload);
+        setAlertCount(payload.unreadCount || 0);
+      })
+      .catch((err) => {
+        console.error('[App] failed to fetch unread alerts:', err.message);
+      });
   }, []);
 
   return (

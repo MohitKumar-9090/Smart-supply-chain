@@ -8,6 +8,19 @@ require('dotenv').config();
 // Initialize Gemini only when needed
 let genAI;
 let model;
+const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 12000);
+
+const withTimeout = async (promise, timeoutMs, label = 'operation') => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const getModel = () => {
   if (!model) {
@@ -57,7 +70,11 @@ Provide a JSON response ONLY (no markdown, no explanation outside JSON):
   }
 
   try {
-    const result = await m.generateContent(prompt);
+    const result = await withTimeout(
+      m.generateContent(prompt),
+      GEMINI_TIMEOUT_MS,
+      'Gemini predictDelay'
+    );
     const text = result.response.text().trim();
     // Parse JSON from response (strip markdown code blocks if present)
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -113,7 +130,11 @@ Provide a JSON response ONLY (no markdown):
   }
 
   try {
-    const result = await m.generateContent(prompt);
+    const result = await withTimeout(
+      m.generateContent(prompt),
+      GEMINI_TIMEOUT_MS,
+      'Gemini optimizeRoute'
+    );
     const text = result.response.text().trim();
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(jsonStr);
@@ -151,7 +172,11 @@ Provide a helpful, concise response as SmartChain AI:`;
   }
 
   try {
-    const result = await m.generateContent(prompt);
+    const result = await withTimeout(
+      m.generateContent(prompt),
+      GEMINI_TIMEOUT_MS,
+      'Gemini chat'
+    );
     return result.response.text().trim();
   } catch (err) {
     console.error('Gemini chat error:', err.message);

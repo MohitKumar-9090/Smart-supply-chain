@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { aiApi, shipmentsApi } from '../../services/api';
+import { aiApi, shipmentsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './routeOptimizer.css';
 import { priorityOptions } from './routeOptimizerData';
+
+const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
 
 const RouteOptimizer = () => {
   const [shipments, setShipments] = useState([]);
@@ -16,7 +18,19 @@ const RouteOptimizer = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    shipmentsApi.getAll().then(res => setShipments(res.data || [])).catch(() => {});
+    shipmentsApi.getAll()
+      .then((res) => {
+        console.log('[RouteOptimizer] shipments response:', getApiPayload(res));
+        const items = (getApiData(res, []) || []).map((s) => ({
+          ...s,
+          status: normalizeStatus(s.status),
+        }));
+        setShipments(items);
+      })
+      .catch((err) => {
+        console.error('[RouteOptimizer] failed to load shipments:', err.message);
+        toast.error('Failed to load shipments');
+      });
   }, []);
 
   const handleShipmentSelect = (id) => {
@@ -43,9 +57,11 @@ const RouteOptimizer = () => {
         ? { shipmentId: selectedId, priority }
         : { origin, destination, cargo, issues, priority };
       const res = await aiApi.optimizeRoute(payload);
-      setResult(res.data);
+      console.log('[RouteOptimizer] optimization response:', getApiPayload(res));
+      setResult(getApiData(res, null));
       toast.success('Route optimization complete!');
     } catch (err) {
+      console.error('[RouteOptimizer] optimization failed:', err.message);
       toast.error('Optimization failed: ' + err.message);
     } finally {
       setLoading(false);
@@ -72,7 +88,7 @@ const RouteOptimizer = () => {
                 <label className="form-label">Load from Shipment (Optional)</label>
                 <select className="form-select" value={selectedId} onChange={e => handleShipmentSelect(e.target.value)}>
                   <option value="">— Enter manually —</option>
-                  {shipments.map(s => (
+                  {(shipments || []).map(s => (
                     <option key={s.id} value={s.id}>
                       {s.trackingNumber} · {s.origin} → {s.destination}
                     </option>

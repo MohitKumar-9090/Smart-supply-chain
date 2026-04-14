@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { shipmentsApi, aiApi } from '../../services/api';
+import { shipmentsApi, aiApi, getApiData, getApiPayload } from '../../services/api';
 import MapView from '../../components/MapView/MapView';
 import toast from 'react-hot-toast';
 import './shipmentDetail.css';
 import { getRiskColor, statusConfig } from './shipmentDetailData';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../../config/firebase';
+const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
 
 const ProbabilityRing = ({ value }) => {
   const radius = 52;
@@ -33,7 +34,7 @@ const ProbabilityRing = ({ value }) => {
   );
 };
 
-const ShipmentDetail = () => {
+const ShipmentDetail = ({ role = 'user' }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [shipment, setShipment] = useState(null);
@@ -44,8 +45,11 @@ const ShipmentDetail = () => {
   const fetchShipmentFallback = async () => {
     try {
       const res = await shipmentsApi.getById(id);
-      setShipment(res.data);
+      console.log('[ShipmentDetail] shipment fallback response:', getApiPayload(res));
+      const data = getApiData(res, null);
+      setShipment(data ? { ...data, status: normalizeStatus(data.status) } : null);
     } catch (err) {
+      console.error('[ShipmentDetail] fallback fetch failed:', err.message);
       toast.error('Shipment not found (Fallback)');
       navigate('/shipments');
     } finally {
@@ -58,7 +62,8 @@ const ShipmentDetail = () => {
     
     const unsubscribe = onValue(shipmentRef, (snapshot) => {
       if (snapshot.exists()) {
-        setShipment(snapshot.val());
+        const current = snapshot.val();
+        setShipment({ ...current, status: normalizeStatus(current.status) });
         setLoading(false);
       } else {
         // Realtime DB might store it as an array if seeded weirdly, or it might be missing
@@ -84,9 +89,11 @@ const ShipmentDetail = () => {
     setPredicting(true);
     try {
       const res = await aiApi.predict({ shipmentId: id });
-      setPrediction(res.data);
+      console.log('[ShipmentDetail] prediction response:', getApiPayload(res));
+      setPrediction(getApiData(res, null));
       toast.success('AI analysis complete!');
     } catch (err) {
+      console.error('[ShipmentDetail] prediction failed:', err.message);
       toast.error('Prediction failed: ' + err.message);
     } finally {
       setPredicting(false);
@@ -245,7 +252,7 @@ const ShipmentDetail = () => {
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase' }}>
                         Contributing Factors
                       </div>
-                      {prediction.contributingFactors.map((f, i) => (
+                      {(prediction.contributingFactors || []).map((f, i) => (
                         <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                           • {f}
                         </div>

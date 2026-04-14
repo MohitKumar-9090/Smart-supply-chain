@@ -3,7 +3,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { analyticsApi } from '../../services/api';
+import { analyticsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './analytics.css';
 import { COLORS, heatmapZones } from './analyticsData';
@@ -36,9 +36,12 @@ const Analytics = () => {
           analyticsApi.getSummary(),
           analyticsApi.getDelayPatterns(),
         ]);
-        setSummary(sumRes.data);
-        setPatterns(patRes.data);
+        console.log('[Analytics] summary response:', getApiPayload(sumRes));
+        console.log('[Analytics] patterns response:', getApiPayload(patRes));
+        setSummary(getApiData(sumRes, {}));
+        setPatterns(getApiData(patRes, {}));
       } catch (err) {
+        console.error('[Analytics] fetch failed:', err.message);
         toast.error('Failed to load analytics');
       } finally {
         setLoading(false);
@@ -190,8 +193,8 @@ const Analytics = () => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
             {(patterns?.topDelayReasons || []).map((item, i) => {
-              const total = patterns.topDelayReasons.reduce((s, r) => s + r.count, 0);
-              const pct = Math.round((item.count / total) * 100);
+              const total = (patterns?.topDelayReasons || []).reduce((s, r) => s + r.count, 0);
+              const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
               return (
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>

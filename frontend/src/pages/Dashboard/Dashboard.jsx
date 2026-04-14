@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import MapView from '../../components/MapView/MapView';
 import ShipmentCard from '../../components/ShipmentCard/ShipmentCard';
-import { shipmentsApi, analyticsApi, alertsApi } from '../../services/api';
+import { shipmentsApi, analyticsApi, alertsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './dashboard.css';
 import { dashboardLegend } from './dashboardData';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../../config/firebase';
+
+const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
 const StatCard = ({ icon, label, value, change, color }) => (
   <div className={`stat-card ${color}`}>
     <div className={`stat-icon ${color}`}>{icon}</div>
@@ -33,11 +35,21 @@ const Dashboard = () => {
         analyticsApi.getSummary(),
         alertsApi.getAll({ unreadOnly: true }),
       ]);
-      setShipments(shipsRes.data || []);
-      setAnalytics(analyticsRes.data || {});
-      setAlerts(alertsRes.data || []);
+      const shipmentsData = (getApiData(shipsRes, []) || []).map((s) => ({
+        ...s,
+        status: normalizeStatus(s.status),
+      }));
+      const analyticsData = getApiData(analyticsRes, {});
+      const alertsData = getApiData(alertsRes, []);
+      console.log('[Dashboard] shipments fallback response:', getApiPayload(shipsRes));
+      console.log('[Dashboard] analytics fallback response:', getApiPayload(analyticsRes));
+      console.log('[Dashboard] alerts fallback response:', getApiPayload(alertsRes));
+      setShipments(shipmentsData);
+      setAnalytics(analyticsData);
+      setAlerts(alertsData);
     } catch (err) {
-      console.warn('Failed to load dashboard data via fallback api');
+      console.error('[Dashboard] fallback fetch failed:', err.message);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -56,7 +68,10 @@ const Dashboard = () => {
 
     const unsubShipments = onValue(shipmentsRef, (snapshot) => {
       if (snapshot.exists()) {
-        const data = Object.values(snapshot.val());
+        const data = Object.values(snapshot.val()).map((s) => ({
+          ...s,
+          status: normalizeStatus(s.status),
+        }));
         setShipments(data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         setLoading(false);
       }
@@ -92,8 +107,10 @@ const Dashboard = () => {
     };
   }, []);
 
-  const highRiskShipments = shipments.filter(s => s.riskLevel >= 60).slice(0, 3);
-  const recentShipments = shipments.slice(0, 4);
+  const safeShipments = shipments || [];
+  const safeAlerts = alerts || [];
+  const highRiskShipments = safeShipments.filter(s => s.riskLevel >= 60).slice(0, 3);
+  const recentShipments = safeShipments.slice(0, 4);
 
   return (
     <div className="page-content">
@@ -126,12 +143,12 @@ const Dashboard = () => {
         <div className="card">
           <div className="card-header">
             <div className="card-title">🗺️ Live Shipment Map</div>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{shipments.length} active routes</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{safeShipments.length} active routes</span>
           </div>
           {loading ? (
             <div className="skeleton" style={{ height: '340px' }} />
           ) : (
-            <MapView shipments={shipments} />
+            <MapView shipments={safeShipments} />
           )}
           {/* Legend */}
           <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
@@ -148,19 +165,19 @@ const Dashboard = () => {
         <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="card-header">
             <div className="card-title">🚨 Active Alerts</div>
-            <span className="badge badge-critical">{alerts.filter(a => !a.read).length} unread</span>
+            <span className="badge badge-critical">{safeAlerts.filter(a => !a.read).length} unread</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1 }}>
             {loading ? (
               [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '70px', borderRadius: 'var(--radius-md)' }} />)
-            ) : alerts.length === 0 ? (
+            ) : safeAlerts.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">✅</div>
                 <div className="empty-title">No Active Alerts</div>
                 <div className="empty-text">All shipments are operating normally.</div>
               </div>
             ) : (
-              alerts.slice(0, 5).map(alert => (
+              safeAlerts.slice(0, 5).map(alert => (
                 <div key={alert.id} className={`alert-item ${!alert.read ? 'unread' : ''} ${alert.type}`}>
                   <div className={`alert-icon-wrap ${alert.type}`}>
                     {alert.type === 'critical' ? '🔴' : alert.type === 'warning' ? '🟡' : 'ℹ️'}

@@ -5,6 +5,9 @@ import './mapView.css';
 import { statusColors } from './mapViewData';
 
 const MapView = ({ shipments = [] }) => {
+  const safeShipments = shipments || [];
+  const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+
   return (
     <div className="map-container">
       <MapContainer
@@ -22,8 +25,9 @@ const MapView = ({ shipments = [] }) => {
         />
 
         {/* Shipment routes & markers */}
-        {shipments.map((shipment) => {
-          const color = statusColors[shipment.status] || '#3b82f6';
+        {safeShipments.map((shipment) => {
+          const normalizedStatus = normalizeStatus(shipment.status);
+          const color = statusColors[normalizedStatus] || '#3b82f6';
           const route = shipment.route || [];
 
           return (
@@ -36,7 +40,7 @@ const MapView = ({ shipments = [] }) => {
                     color,
                     weight: 2,
                     opacity: 0.6,
-                    dashArray: shipment.status === 'delayed' ? '5, 8' : null,
+                    dashArray: normalizedStatus === 'delayed' ? '5, 8' : null,
                   }}
                 />
               )}
@@ -65,7 +69,7 @@ const MapView = ({ shipments = [] }) => {
                       <strong style={{ fontSize: '13px' }}>{shipment.trackingNumber}</strong>
                       <br />
                       <span style={{ color: color, fontSize: '11px', fontWeight: 600 }}>
-                        {shipment.status.toUpperCase()}
+                        {normalizedStatus.toUpperCase()}
                       </span>
                       <br />
                       <span style={{ fontSize: '11px' }}>

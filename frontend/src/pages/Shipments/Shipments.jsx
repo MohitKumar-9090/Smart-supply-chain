@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -16,11 +16,13 @@ const Shipments = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ origin: '', destination: '', cargo: '', weight: '', carrier: '', weather: 'Clear', traffic: 'Normal', description: '' });
+  const didFallbackRunRef = useRef(false);
 
   const fetchShipmentsFallback = async () => {
     try {
       const res = await shipmentsApi.getAll({ search, status: statusFilter });
-      setShipments(res.data || []);
+      const fallbackShipments = Array.isArray(res) ? res : (res?.data || []);
+      setShipments(fallbackShipments);
     } catch (err) {
       toast.error('Failed to load shipments (Fallback)');
     } finally {
@@ -29,6 +31,14 @@ const Shipments = () => {
   };
 
   useEffect(() => {
+    didFallbackRunRef.current = false;
+
+    const runFallbackOnce = () => {
+      if (didFallbackRunRef.current) return;
+      didFallbackRunRef.current = true;
+      fetchShipmentsFallback();
+    };
+
     const shipmentsRef = ref(database, 'shipments');
     const unsubscribe = onValue(shipmentsRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -52,18 +62,20 @@ const Shipments = () => {
         results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setShipments(results);
         setLoading(false);
+        didFallbackRunRef.current = true;
       } else {
         setShipments([]);
         setLoading(false);
+        didFallbackRunRef.current = true;
       }
     }, (error) => {
       console.warn("Firebase permission denied. Falling back to local backend REST API for tracking.", error);
-      fetchShipmentsFallback(); // Auto-fallback if rules are locked
+      runFallbackOnce(); // Auto-fallback if rules are locked
     });
 
     // We also run the fallback just in case Firebase hangs
     const fallbackTimeout = setTimeout(() => {
-      if (loading) fetchShipmentsFallback();
+      runFallbackOnce();
     }, 1500);
 
     return () => {
@@ -117,7 +129,7 @@ const Shipments = () => {
     try {
       await shipmentsApi.delete(id);
       toast.success('Shipment deleted');
-      fetchShipments();
+      fetchShipmentsFallback();
     } catch (err) {
       toast.error(err.message);
     }

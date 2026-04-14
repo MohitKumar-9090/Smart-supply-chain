@@ -1,0 +1,16 @@
+/* ─── Heatmap ────────────────────────────────── */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.heatmap-cell {
+  padding: 14px 12px;
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition: transform var(--transition-fast);
+  cursor: pointer;
+}
+
+.heatmap-cell:hover { transform: scale(1.05); }

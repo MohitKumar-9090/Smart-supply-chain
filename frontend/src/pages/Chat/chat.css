@@ -1,0 +1,6 @@
+/* Chat component-specific overrides — glassmorphism styles handled in index.css */
+
+@keyframes typing-dot {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}

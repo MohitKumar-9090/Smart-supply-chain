@@ -1,0 +1,6 @@
+/* Sidebar component-specific overrides — glassmorphism handled by index.css */
+
+/* Mobile close on smaller screens */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+}

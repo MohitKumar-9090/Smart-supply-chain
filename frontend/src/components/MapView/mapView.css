@@ -1,0 +1,10 @@
+.map-container {
+  height: 340px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.leaflet-container {
+  background: #f8fafc !important;
+}

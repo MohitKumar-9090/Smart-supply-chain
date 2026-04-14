@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './header.css';
 import { getLiveIndicatorData } from './headerData';
 
-const Header = ({ title, subtitle, alertCount }) => {
+const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
   const navigate = useNavigate();
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -12,9 +12,14 @@ const Header = ({ title, subtitle, alertCount }) => {
 
   return (
     <header className="header">
-      <div className="header-left">
-        <div className="header-title">{title || 'SmartChain AI'}</div>
-        <div className="header-subtitle">{subtitle || `${dateStr} · ${timeStr}`}</div>
+      <div className="header-left-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button className="mobile-menu-btn" onClick={onMenuClick}>
+          ☰
+        </button>
+        <div className="header-left">
+          <div className="header-title">{title || 'SmartChain AI'}</div>
+          <div className="header-subtitle">{subtitle || `${dateStr} · ${timeStr}`}</div>
+        </div>
       </div>
 
       <div className="header-right">

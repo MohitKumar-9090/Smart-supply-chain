@@ -1145,16 +1145,122 @@ body::after {
 
 .heatmap-cell:hover { transform: scale(1.05); }
 
+/* ─── Mobile Overlays & Buttons ────────────────── */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 8, 22, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 90;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ─── Responsive ──────────────────────────────── */
 @media (max-width: 1024px) {
   .page-content { padding: 20px 16px; }
 }
 
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .main-content { margin-left: 0; }
-  .header { left: 0; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    z-index: 200;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main-content {
+    margin-left: 0;
+    padding-top: var(--header-height);
+  }
+
+  /* ── Mobile Header ── */
+  .header {
+    left: 0;
+    height: var(--header-height);
+    padding: 0 14px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Show hamburger on mobile */
+  .mobile-overlay { display: block; }
+  .mobile-menu-btn { display: flex; }
+
+  /* header-left-wrapper takes remaining space */
+  .header-left-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-left {
+    min-width: 0;
+  }
+
+  .header-title {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-subtitle {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Right buttons compact */
+  .header-right {
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .header-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+
+  /* Hide live status pill on mobile to save space */
+  .live-status-pill { display: none; }
+
+  /* ── Grid fixes ── */
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .map-container { height: 240px; }
+  .chat-wrapper { height: calc(100svh - var(--header-height) - 60px); max-height: none; }
+  .chat-bubble-wrapper { max-width: 95%; }
+  .page-header-left .page-title { font-size: 18px; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .page-content { padding: 16px 14px; }
+  .stat-value { font-size: 24px; }
+  .modal { padding: 20px 16px; }
+  .data-table th, .data-table td { padding: 10px 10px; font-size: 12px; }
+}
+
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .header-title { font-size: 13px; }
 }
 
 /* ─── Utilities ──────────────────────────────── */

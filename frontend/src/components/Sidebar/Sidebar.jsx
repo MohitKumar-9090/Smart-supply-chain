@@ -3,14 +3,20 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import './sidebar.css';
 import { navItems } from './sidebarData';
 
-const Sidebar = ({ alertCount }) => {
+const Sidebar = ({ alertCount, isOpen, setIsOpen }) => {
   const navigate = useNavigate();
 
+  const handleNavClick = () => {
+    if (window.innerWidth <= 768) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+        <div className="sidebar-logo-brand" onClick={() => { navigate('/'); handleNavClick(); }} style={{ cursor: 'pointer' }}>
           <div className="logo-icon">⛓️</div>
           <div className="logo-text">
             <span className="logo-name">SmartChain AI</span>
@@ -32,6 +38,7 @@ const Sidebar = ({ alertCount }) => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={handleNavClick}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               end={item.path === '/'}
             >

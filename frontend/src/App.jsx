@@ -36,14 +36,19 @@ const PAGE_META = {
 };
 
 const AppLayout = ({ children, alertCount, onAlertCountChange }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const path = window.location.pathname;
   const meta = PAGE_META[path] || PAGE_META['/'];
 
   return (
     <div className="app-layout">
-      <Sidebar alertCount={alertCount} />
+      <Sidebar alertCount={alertCount} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="mobile-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
       <div className="main-content">
-        <Header title={meta.title} subtitle={meta.subtitle} alertCount={alertCount} />
+        <Header title={meta.title} subtitle={meta.subtitle} alertCount={alertCount} onMenuClick={() => setIsSidebarOpen(true)} />
         <main>
           {React.cloneElement(children, { onAlertCountChange })}
         </main>

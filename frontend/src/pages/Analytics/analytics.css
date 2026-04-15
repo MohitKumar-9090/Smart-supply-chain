@@ -14,3 +14,34 @@
 }
 
 .heatmap-cell:hover { transform: scale(1.05); }
+
+.analytics-route-form {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.analytics-route-result {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .analytics-route-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .analytics-route-form {
+    grid-template-columns: 1fr;
+  }
+}

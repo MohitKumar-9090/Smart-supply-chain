@@ -1,12 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
-import { analyticsApi, getApiData, getApiPayload } from '../../services/api';
+import { aiApi, analyticsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './analytics.css';
 import { COLORS, heatmapZones } from './analyticsData';
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const withRetry = async (fn, retries = 2, delayMs = 900) => {
+  let lastErr;
+  for (let i = 0; i <= retries; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < retries) await wait(delayMs);
+    }
+  }
+  throw lastErr;
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
@@ -25,30 +51,87 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Analytics = () => {
-  const [summary, setSummary] = useState(null);
-  const [patterns, setPatterns] = useState(null);
+  const [summary, setSummary] = useState({});
+  const [patterns, setPatterns] = useState({});
   const [loading, setLoading] = useState(true);
+
+  const [routeForm, setRouteForm] = useState({
+    origin: '',
+    destination: '',
+    cargo: 'General Cargo',
+    issues: '',
+    priority: 'balanced',
+  });
+  const [routeResult, setRouteResult] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sumRes, patRes] = await Promise.all([
-          analyticsApi.getSummary(),
-          analyticsApi.getDelayPatterns(),
+        const [sumRes, patRes] = await Promise.allSettled([
+          withRetry(() => analyticsApi.getSummary(), 2, 900),
+          withRetry(() => analyticsApi.getDelayPatterns(), 2, 900),
         ]);
-        console.log('[Analytics] summary response:', getApiPayload(sumRes));
-        console.log('[Analytics] patterns response:', getApiPayload(patRes));
-        setSummary(getApiData(sumRes, {}));
-        setPatterns(getApiData(patRes, {}));
+
+        if (sumRes.status === 'fulfilled') {
+          console.log('[Analytics] summary response:', getApiPayload(sumRes.value));
+          setSummary(getApiData(sumRes.value, {}));
+        } else {
+          console.error('[Analytics] summary failed:', sumRes.reason?.message);
+        }
+
+        if (patRes.status === 'fulfilled') {
+          console.log('[Analytics] patterns response:', getApiPayload(patRes.value));
+          setPatterns(getApiData(patRes.value, {}));
+        } else {
+          console.error('[Analytics] patterns failed:', patRes.reason?.message);
+        }
+
+        if (sumRes.status === 'rejected' && patRes.status === 'rejected') {
+          toast.error(`Failed to load analytics: ${sumRes.reason?.message || patRes.reason?.message || 'Network error'}`);
+        }
       } catch (err) {
         console.error('[Analytics] fetch failed:', err.message);
-        toast.error('Failed to load analytics');
+        toast.error(`Failed to load analytics: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
+
+  const handleRouteAnalyze = async (e) => {
+    e.preventDefault();
+    if (!routeForm.origin || !routeForm.destination) {
+      toast.error('Please enter origin and destination');
+      return;
+    }
+
+    setRouteLoading(true);
+    try {
+      const res = await withRetry(
+        () => aiApi.optimizeRoute({
+          origin: routeForm.origin,
+          destination: routeForm.destination,
+          cargo: routeForm.cargo,
+          issues: routeForm.issues,
+          priority: routeForm.priority,
+        }),
+        2,
+        900
+      );
+
+      const data = getApiData(res, null);
+      setRouteResult(data);
+      toast.success('Route analysis completed');
+    } catch (err) {
+      console.error('[Analytics] route analyze failed:', err.message);
+      toast.error(`Route analysis failed: ${err.message}`);
+    } finally {
+      setRouteLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -56,7 +139,7 @@ const Analytics = () => {
         <div style={{ display: 'grid', gap: '20px' }}>
           <div className="skeleton" style={{ height: '60px' }} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
-            {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: '120px' }} />)}
+            {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: '120px' }} />)}
           </div>
           <div className="skeleton" style={{ height: '300px' }} />
         </div>
@@ -64,7 +147,6 @@ const Analytics = () => {
     );
   }
 
-  // Pie chart data
   const pieData = [
     { name: 'On Time', value: summary?.onTimeDeliveries || 0 },
     { name: 'Delayed', value: summary?.delayedDeliveries || 0 },
@@ -75,41 +157,95 @@ const Analytics = () => {
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-title">📊 Analytics Dashboard</h1>
-          <p className="page-subtitle">Supply chain performance insights · Last 6 months</p>
+          <h1 className="page-title">Analytics Dashboard</h1>
+          <p className="page-subtitle">Supply chain performance insights - Last 6 months</p>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card-header">
+          <div className="card-title">Manual Route Analysis</div>
+          <span className="badge badge-info">AI Assisted</span>
+        </div>
+
+        <form className="analytics-route-form" onSubmit={handleRouteAnalyze}>
+          <input
+            className="form-input"
+            placeholder="Origin (e.g. Mumbai, India)"
+            value={routeForm.origin}
+            onChange={(e) => setRouteForm((p) => ({ ...p, origin: e.target.value }))}
+            required
+          />
+          <input
+            className="form-input"
+            placeholder="Destination (e.g. Dubai, UAE)"
+            value={routeForm.destination}
+            onChange={(e) => setRouteForm((p) => ({ ...p, destination: e.target.value }))}
+            required
+          />
+          <input
+            className="form-input"
+            placeholder="Cargo"
+            value={routeForm.cargo}
+            onChange={(e) => setRouteForm((p) => ({ ...p, cargo: e.target.value }))}
+          />
+          <input
+            className="form-input"
+            placeholder="Current Issues (optional)"
+            value={routeForm.issues}
+            onChange={(e) => setRouteForm((p) => ({ ...p, issues: e.target.value }))}
+          />
+          <select
+            className="form-select"
+            value={routeForm.priority}
+            onChange={(e) => setRouteForm((p) => ({ ...p, priority: e.target.value }))}
+          >
+            <option value="balanced">Balanced</option>
+            <option value="time">Time Priority</option>
+            <option value="cost">Cost Priority</option>
+          </select>
+          <button className="btn btn-primary" type="submit" disabled={routeLoading}>
+            {routeLoading ? 'Analyzing...' : 'Analyze Route'}
+          </button>
+        </form>
+
+        {routeResult?.recommendedRoute && (
+          <div className="analytics-route-result">
+            <div><strong>Recommended:</strong> {routeResult.recommendedRoute.name}</div>
+            <div><strong>Time:</strong> {routeResult.recommendedRoute.estimatedTime}</div>
+            <div><strong>Cost:</strong> {routeResult.recommendedRoute.estimatedCost}</div>
+            <div><strong>Risk:</strong> {routeResult.recommendedRoute.riskScore}%</div>
+          </div>
+        )}
+      </div>
+
       <div className="stats-grid" style={{ marginBottom: '24px' }}>
         <div className="stat-card green">
-          <div className="stat-icon green">✅</div>
+          <div className="stat-icon green">OK</div>
           <div className="stat-value">{summary?.deliverySuccessRate || 0}%</div>
           <div className="stat-label">Delivery Success Rate</div>
         </div>
         <div className="stat-card blue">
-          <div className="stat-icon blue">📦</div>
+          <div className="stat-icon blue">S</div>
           <div className="stat-value">{summary?.totalShipments || 0}</div>
           <div className="stat-label">Total Shipments</div>
         </div>
         <div className="stat-card amber">
-          <div className="stat-icon amber">⏱️</div>
+          <div className="stat-icon amber">T</div>
           <div className="stat-value">{summary?.averageDelayHours || 0}h</div>
           <div className="stat-label">Avg Delay Hours</div>
         </div>
         <div className="stat-card blue">
-          <div className="stat-icon blue">🗺️</div>
+          <div className="stat-icon blue">R</div>
           <div className="stat-value">{summary?.routeEfficiency || 0}%</div>
           <div className="stat-label">Route Efficiency</div>
         </div>
       </div>
 
-      {/* Charts Row 1 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', marginBottom: '20px' }}>
-        {/* Delivery Trend */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">📈 Delivery Performance Trend</div>
+            <div className="card-title">Delivery Performance Trend</div>
             <span className="badge badge-info">6 Months</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
@@ -135,17 +271,14 @@ const Analytics = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Distribution Pie */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">🍩 Status Distribution</div>
+            <div className="card-title">Status Distribution</div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
-                {pieData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i]} />
-                ))}
+                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
               </Pie>
               <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', fontSize: '12px' }} />
             </PieChart>
@@ -164,12 +297,10 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* Charts Row 2 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        {/* Route Performance */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">🗺️ Route Efficiency</div>
+            <div className="card-title">Route Efficiency</div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={patterns?.routePerformance || []} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
@@ -186,10 +317,9 @@ const Analytics = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Delay Reasons */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">⚠️ Top Delay Reasons</div>
+            <div className="card-title">Top Delay Reasons</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
             {(patterns?.topDelayReasons || []).map((item, i) => {
@@ -211,10 +341,9 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* Risk Heatmap */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">🔥 Risk Heatmap — Shipment Overview</div>
+          <div className="card-title">Risk Heatmap - Shipment Overview</div>
           <span className="badge badge-info">Bonus Feature</span>
         </div>
         <div className="heatmap-grid">

@@ -1447,7 +1447,25 @@ body::after {
     justify-content: center;
   }
   .chat-page {
-    height: calc(100svh - var(--header-height) - 42px);
+    height: auto;
+    min-height: calc(100svh - var(--header-height) - 24px);
+  }
+  .chat-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: initial;
+    min-height: auto;
+  }
+  .chat-main-card {
+    min-height: calc(100svh - var(--header-height) - 170px);
+  }
+  .chat-messages {
+    min-height: 300px;
+    max-height: none;
+  }
+  .chat-side-panel {
+    display: none;
   }
   .route-state-card {
     min-height: 280px;

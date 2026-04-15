@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { shipmentsApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './shipments.css';
 import { getStatusBadge, getRiskColor } from './shipmentsData';
-import { ref, onValue } from 'firebase/database';
-import { database } from '../../config/firebase';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const Shipments = () => {
   const navigate = useNavigate();
   const [shipments, setShipments] = useState([]);
@@ -18,11 +17,16 @@ const Shipments = () => {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ origin: '', destination: '', cargo: '', weight: '', carrier: '', weather: 'Clear', traffic: 'Normal', description: '' });
-  const didFallbackRunRef = useRef(false);
-
   const fetchShipmentsFallback = async () => {
     try {
-      const res = await shipmentsApi.getAll({ search, status: statusFilter });
+      let res;
+      try {
+        res = await shipmentsApi.getAll({ search, status: statusFilter });
+      } catch (firstErr) {
+        console.warn('[Shipments] first fetch failed, retrying:', firstErr.message);
+        await wait(800);
+        res = await shipmentsApi.getAll({ search, status: statusFilter });
+      }
       console.log('[Shipments] fallback response:', getApiPayload(res));
       const fallbackShipments = (getApiData(res, []) || []).map((s) => ({
         ...s,
@@ -38,60 +42,8 @@ const Shipments = () => {
   };
 
   useEffect(() => {
-    didFallbackRunRef.current = false;
-
-    const runFallbackOnce = () => {
-      if (didFallbackRunRef.current) return;
-      didFallbackRunRef.current = true;
-      fetchShipmentsFallback();
-    };
-
-    const shipmentsRef = ref(database, 'shipments');
-    const unsubscribe = onValue(shipmentsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        let results = Object.values(data).map((s) => ({
-          ...s,
-          status: normalizeStatus(s.status),
-        }));
-        
-        // Apply frontend filtering for Realtime DB
-        if (statusFilter !== 'all') {
-          results = results.filter(s => s.status === normalizeStatus(statusFilter));
-        }
-        if (search) {
-          const q = search.toLowerCase();
-          results = results.filter(s =>
-            s.trackingNumber.toLowerCase().includes(q) ||
-            s.origin.toLowerCase().includes(q) ||
-            s.destination.toLowerCase().includes(q)
-          );
-        }
-        
-        // Sort newest first
-        results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setShipments(results);
-        setLoading(false);
-        didFallbackRunRef.current = true;
-      } else {
-        setShipments([]);
-        setLoading(false);
-        didFallbackRunRef.current = true;
-      }
-    }, (error) => {
-      console.warn("Firebase permission denied. Falling back to local backend REST API for tracking.", error);
-      runFallbackOnce(); // Auto-fallback if rules are locked
-    });
-
-    // We also run the fallback just in case Firebase hangs
-    const fallbackTimeout = setTimeout(() => {
-      runFallbackOnce();
-    }, 1500);
-
-    return () => {
-      unsubscribe();
-      clearTimeout(fallbackTimeout);
-    };
+    setLoading(true);
+    fetchShipmentsFallback();
   }, [search, statusFilter]);
 
   const handleSave = async (e) => {

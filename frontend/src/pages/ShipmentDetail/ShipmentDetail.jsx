@@ -5,9 +5,8 @@ import MapView from '../../components/MapView/MapView';
 import toast from 'react-hot-toast';
 import './shipmentDetail.css';
 import { getRiskColor, statusConfig } from './shipmentDetailData';
-import { ref, onValue } from 'firebase/database';
-import { database } from '../../config/firebase';
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const ProbabilityRing = ({ value }) => {
   const radius = 52;
@@ -44,7 +43,14 @@ const ShipmentDetail = ({ role = 'user' }) => {
 
   const fetchShipmentFallback = async () => {
     try {
-      const res = await shipmentsApi.getById(id);
+      let res;
+      try {
+        res = await shipmentsApi.getById(id);
+      } catch (firstErr) {
+        console.warn('[ShipmentDetail] first fetch failed, retrying:', firstErr.message);
+        await wait(800);
+        res = await shipmentsApi.getById(id);
+      }
       console.log('[ShipmentDetail] shipment fallback response:', getApiPayload(res));
       const data = getApiData(res, null);
       setShipment(data ? { ...data, status: normalizeStatus(data.status) } : null);
@@ -58,31 +64,8 @@ const ShipmentDetail = ({ role = 'user' }) => {
   };
 
   useEffect(() => {
-    const shipmentRef = ref(database, `shipments/${id}`);
-    
-    const unsubscribe = onValue(shipmentRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const current = snapshot.val();
-        setShipment({ ...current, status: normalizeStatus(current.status) });
-        setLoading(false);
-      } else {
-        // Realtime DB might store it as an array if seeded weirdly, or it might be missing
-        // So we fallback to API if Firebase returns null but we expect it to exist
-        fetchShipmentFallback(); 
-      }
-    }, (error) => {
-      console.warn("Firebase permission denied. Falling back to local backend REST API.", error);
-      fetchShipmentFallback();
-    });
-
-    const fallbackTimeout = setTimeout(() => {
-      if (loading) fetchShipmentFallback();
-    }, 1500);
-
-    return () => {
-      unsubscribe();
-      clearTimeout(fallbackTimeout);
-    };
+    setLoading(true);
+    fetchShipmentFallback();
   }, [id]);
 
   const handlePredict = async () => {
@@ -124,7 +107,7 @@ const ShipmentDetail = ({ role = 'user' }) => {
         </button>
         <div className="page-header" style={{ marginBottom: 0 }}>
           <div className="page-header-left">
-            <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               📦 {shipment.trackingNumber}
               <span className={`badge ${sc.class}`}>{sc.icon} {sc.label}</span>
             </h1>
@@ -138,9 +121,9 @@ const ShipmentDetail = ({ role = 'user' }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '20px' }}>
+      <div className="shipment-detail-layout">
         {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="shipment-detail-left">
           {/* Map */}
           <div className="card">
             <div className="card-title" style={{ marginBottom: '16px' }}>🗺️ Route Visualization</div>
@@ -150,7 +133,7 @@ const ShipmentDetail = ({ role = 'user' }) => {
           {/* Shipment Details */}
           <div className="card">
             <div className="card-title" style={{ marginBottom: '18px' }}>📋 Shipment Details</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="shipment-detail-info-grid">
               {[
                 { label: 'Carrier', value: shipment.carrier, icon: '🚢' },
                 { label: 'Cargo Type', value: shipment.cargo, icon: '📦' },
@@ -189,7 +172,7 @@ const ShipmentDetail = ({ role = 'user' }) => {
         </div>
 
         {/* Right Column — AI Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="shipment-detail-right">
           {/* AI Insight Panel */}
           <div className="insight-panel">
             <div className="insight-header">

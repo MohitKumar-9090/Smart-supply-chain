@@ -69,9 +69,9 @@ const Chat = () => {
   };
 
   return (
-    <div className="page-content" style={{ height: 'calc(100vh - var(--header-height) - 56px)', display: 'flex', flexDirection: 'column' }}>
+    <div className="page-content chat-page">
       {/* Header */}
-      <div className="page-header" style={{ marginBottom: '16px', flexShrink: 0 }}>
+      <div className="page-header chat-page-header">
         <div className="page-header-left">
           <h1 className="page-title">💬 AI Chat Assistant</h1>
           <p className="page-subtitle">Powered by Google Gemini · Ask anything about your supply chain</p>
@@ -82,9 +82,9 @@ const Chat = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '20px', flex: 1, minHeight: 0 }}>
+      <div className="chat-layout">
         {/* Chat Area */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+        <div className="card chat-main-card">
           {/* Messages */}
           <div className="chat-messages" style={{ flex: 1, overflowY: 'auto' }}>
             {messages.map((msg) => (
@@ -149,7 +149,7 @@ const Chat = () => {
         </div>
 
         {/* Suggestions Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="chat-side-panel">
           <div className="card">
             <div className="card-title" style={{ marginBottom: '14px' }}>💡 Quick Questions</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

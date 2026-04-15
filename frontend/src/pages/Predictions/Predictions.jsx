@@ -116,11 +116,11 @@ const Predictions = () => {
 
       {/* Shipment Prediction Cards */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+        <div className="predictions-grid">
           {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: '200px', borderRadius: 'var(--radius-lg)' }} />)}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+        <div className="predictions-grid">
           {(shipments || []).map(s => {
             const pred = predictions[s.id];
             const isRunning = running[s.id];

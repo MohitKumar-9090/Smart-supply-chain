@@ -93,9 +93,9 @@ const RouteOptimizer = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '20px' }}>
+      <div className="route-layout">
         {/* Input Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="route-input-col">
           <div className="card">
             <div className="card-title" style={{ marginBottom: '18px' }}>⚙️ Route Parameters</div>
             <form onSubmit={handleOptimize}>
@@ -149,13 +149,9 @@ const RouteOptimizer = () => {
         </div>
 
         {/* Results */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="route-results-col">
           {!result && !loading && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              minHeight: '400px', color: 'var(--text-muted)', textAlign: 'center',
-              background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)',
-            }}>
+            <div className="route-state-card" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
               <div style={{ fontSize: '56px', marginBottom: '16px', opacity: 0.4 }}>🗺️</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 Ready to Optimize
@@ -167,10 +163,7 @@ const RouteOptimizer = () => {
           )}
 
           {loading && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              minHeight: '400px', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)',
-            }}>
+            <div className="route-state-card">
               <div style={{ fontSize: '48px', marginBottom: '16px', animation: 'sparkle 1.5s infinite' }}>🤖</div>
               <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
                 Gemini is analyzing routes...

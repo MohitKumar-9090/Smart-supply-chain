@@ -2,11 +2,33 @@ import React from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mapView.css';
-import { statusColors } from './mapViewData';
+import { cityCoordinates, statusColors } from './mapViewData';
 
 const MapView = ({ shipments = [] }) => {
   const safeShipments = shipments || [];
   const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+  const isValidPoint = (point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng);
+
+  const getCoordFromText = (value = '') => {
+    const normalized = String(value).toLowerCase();
+    const key = Object.keys(cityCoordinates).find((k) => normalized.includes(k));
+    return key ? cityCoordinates[key] : null;
+  };
+
+  const getRoutePoints = (shipment) => {
+    const route = Array.isArray(shipment?.route) ? shipment.route.filter(isValidPoint) : [];
+    if (route.length >= 2) return route;
+
+    const origin = getCoordFromText(shipment?.origin);
+    const destination = getCoordFromText(shipment?.destination);
+    if (origin && destination) {
+      return [
+        { ...origin, name: origin.name || shipment.origin || 'Origin' },
+        { ...destination, name: destination.name || shipment.destination || 'Destination' },
+      ];
+    }
+    return [];
+  };
 
   return (
     <div className="map-container">
@@ -28,7 +50,7 @@ const MapView = ({ shipments = [] }) => {
         {safeShipments.map((shipment) => {
           const normalizedStatus = normalizeStatus(shipment.status);
           const color = statusColors[normalizedStatus] || '#3b82f6';
-          const route = shipment.route || [];
+          const route = getRoutePoints(shipment);
 
           return (
             <React.Fragment key={shipment.id}>

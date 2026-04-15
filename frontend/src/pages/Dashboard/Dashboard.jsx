@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MapView from '../../components/MapView/MapView';
 import ShipmentCard from '../../components/ShipmentCard/ShipmentCard';
 import { shipmentsApi, analyticsApi, alertsApi, healthApi, getApiData, getApiPayload } from '../../services/api';
@@ -40,6 +40,17 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const consecutiveFailRef = useRef(0);
+  const lastErrorToastAtRef = useRef(0);
+
+  const showDashboardError = (message, allowToast) => {
+    if (!allowToast) return;
+    const now = Date.now();
+    const cooldownMs = 20000;
+    if (now - lastErrorToastAtRef.current < cooldownMs) return;
+    lastErrorToastAtRef.current = now;
+    toast.error(`Failed to load dashboard data: ${message}`, { id: 'dashboard-load-error' });
+  };
 
   const fetchDataFallback = async (showErrors = true) => {
     try {
@@ -84,19 +95,23 @@ const Dashboard = () => {
         analyticsResult.status === 'rejected' &&
         alertsResult.status === 'rejected';
 
-      if (allFailed && showErrors) {
+      if (allFailed) {
+        consecutiveFailRef.current += 1;
         const firstError =
           shipsResult.reason?.message ||
           analyticsResult.reason?.message ||
           alertsResult.reason?.message ||
           'Unknown error';
-        toast.error(`Failed to load dashboard data: ${firstError}`);
+        const shouldToast = showErrors || consecutiveFailRef.current >= 2;
+        showDashboardError(firstError, shouldToast);
+      } else {
+        consecutiveFailRef.current = 0;
       }
     } catch (err) {
       console.error('[Dashboard] fallback fetch failed:', err.message);
-      if (showErrors) {
-        toast.error(`Failed to load dashboard data: ${err.message}`);
-      }
+      consecutiveFailRef.current += 1;
+      const shouldToast = showErrors || consecutiveFailRef.current >= 2;
+      showDashboardError(err.message, shouldToast);
     } finally {
       setLoading(false);
     }
@@ -107,7 +122,7 @@ const Dashboard = () => {
     const run = async (isInitial = false) => {
       if (!isActive) return;
       if (isInitial) setLoading(true);
-      await fetchDataFallback(isInitial);
+      await fetchDataFallback(false);
     };
     run(true);
 

@@ -3,7 +3,25 @@
  */
 import axios from 'axios';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+const normalizeApiBase = (input) => {
+  const fallback = import.meta.env.PROD
+    ? 'https://smart-supply-chain.onrender.com/api'
+    : 'http://localhost:5000/api';
+  const raw = (input || fallback).trim();
+
+  try {
+    const url = new URL(raw);
+    url.pathname = url.pathname.replace(/\/+$/, '');
+    if (!url.pathname.endsWith('/api')) {
+      url.pathname = `${url.pathname}/api`.replace(/\/{2,}/g, '/');
+    }
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return fallback;
+  }
+};
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL);
 
 const api = axios.create({
   baseURL: API_BASE,

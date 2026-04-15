@@ -6,6 +6,7 @@ import './predictions.css';
 import { getRiskColor, getRiskLabel } from './predictionsData';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const Predictions = () => {
   const navigate = useNavigate();
@@ -16,8 +17,9 @@ const Predictions = () => {
   const [runningAll, setRunningAll] = useState(false);
 
   useEffect(() => {
-    shipmentsApi.getAll()
-      .then((res) => {
+    const loadShipments = async () => {
+      try {
+        const res = await shipmentsApi.getAll();
         const payload = getApiPayload(res);
         const items = (getApiData(res, []) || []).map((s) => ({
           ...s,
@@ -25,12 +27,28 @@ const Predictions = () => {
         }));
         console.log('[Predictions] shipments response:', payload);
         setShipments(items);
-      })
-      .catch((err) => {
-        console.error('[Predictions] failed to load shipments:', err.message);
-        toast.error('Failed to load shipments');
-      })
-      .finally(() => setLoading(false));
+      } catch (firstErr) {
+        console.warn('[Predictions] first load failed, retrying:', firstErr.message);
+        try {
+          await wait(800);
+          const res = await shipmentsApi.getAll();
+          const payload = getApiPayload(res);
+          const items = (getApiData(res, []) || []).map((s) => ({
+            ...s,
+            status: normalizeStatus(s.status),
+          }));
+          console.log('[Predictions] shipments response after retry:', payload);
+          setShipments(items);
+        } catch (err) {
+          console.error('[Predictions] failed to load shipments:', err.message);
+          toast.error(`Failed to load shipments: ${err.message}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadShipments();
   }, []);
 
   const runPrediction = async (id) => {

@@ -30,26 +30,55 @@ const Dashboard = () => {
 
   const fetchDataFallback = async () => {
     try {
-      const [shipsRes, analyticsRes, alertsRes] = await Promise.all([
+      const [shipsResult, analyticsResult, alertsResult] = await Promise.allSettled([
         shipmentsApi.getAll(),
         analyticsApi.getSummary(),
         alertsApi.getAll({ unreadOnly: true }),
       ]);
-      const shipmentsData = (getApiData(shipsRes, []) || []).map((s) => ({
-        ...s,
-        status: normalizeStatus(s.status),
-      }));
-      const analyticsData = getApiData(analyticsRes, {});
-      const alertsData = getApiData(alertsRes, []);
-      console.log('[Dashboard] shipments fallback response:', getApiPayload(shipsRes));
-      console.log('[Dashboard] analytics fallback response:', getApiPayload(analyticsRes));
-      console.log('[Dashboard] alerts fallback response:', getApiPayload(alertsRes));
-      setShipments(shipmentsData);
-      setAnalytics(analyticsData);
-      setAlerts(alertsData);
+
+      if (shipsResult.status === 'fulfilled') {
+        const shipmentsData = (getApiData(shipsResult.value, []) || []).map((s) => ({
+          ...s,
+          status: normalizeStatus(s.status),
+        }));
+        console.log('[Dashboard] shipments fallback response:', getApiPayload(shipsResult.value));
+        setShipments(shipmentsData);
+      } else {
+        console.error('[Dashboard] shipments fallback failed:', shipsResult.reason?.message);
+      }
+
+      if (analyticsResult.status === 'fulfilled') {
+        const analyticsData = getApiData(analyticsResult.value, {});
+        console.log('[Dashboard] analytics fallback response:', getApiPayload(analyticsResult.value));
+        setAnalytics(analyticsData);
+      } else {
+        console.error('[Dashboard] analytics fallback failed:', analyticsResult.reason?.message);
+      }
+
+      if (alertsResult.status === 'fulfilled') {
+        const alertsData = getApiData(alertsResult.value, []);
+        console.log('[Dashboard] alerts fallback response:', getApiPayload(alertsResult.value));
+        setAlerts(alertsData);
+      } else {
+        console.error('[Dashboard] alerts fallback failed:', alertsResult.reason?.message);
+      }
+
+      const allFailed =
+        shipsResult.status === 'rejected' &&
+        analyticsResult.status === 'rejected' &&
+        alertsResult.status === 'rejected';
+
+      if (allFailed) {
+        const firstError =
+          shipsResult.reason?.message ||
+          analyticsResult.reason?.message ||
+          alertsResult.reason?.message ||
+          'Unknown error';
+        toast.error(`Failed to load dashboard data: ${firstError}`);
+      }
     } catch (err) {
       console.error('[Dashboard] fallback fetch failed:', err.message);
-      toast.error('Failed to load dashboard data');
+      toast.error(`Failed to load dashboard data: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -90,20 +119,14 @@ const Dashboard = () => {
 
     // 2. Timeout Fallback (If firebase just sits there hanging indefinitely)
     const fallbackTimeout = setTimeout(() => {
-      if (loading) fetchDataFallback();
+      fetchDataFallback();
     }, 1500);
-
-    // 3. Keep local polling running slightly slower just in case Firebase read fails but we didn't crash
-    const pollInterval = setInterval(() => {
-      if(shipments.length === 0) fetchDataFallback();
-    }, 15000);
 
     return () => {
       unsubShipments();
       unsubAnalytics();
       unsubAlerts();
       clearTimeout(fallbackTimeout);
-      clearInterval(pollInterval);
     };
   }, []);
 

@@ -5,6 +5,7 @@ import './routeOptimizer.css';
 import { priorityOptions } from './routeOptimizerData';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const RouteOptimizer = () => {
   const [shipments, setShipments] = useState([]);
@@ -18,19 +19,34 @@ const RouteOptimizer = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    shipmentsApi.getAll()
-      .then((res) => {
+    const loadShipments = async () => {
+      try {
+        const res = await shipmentsApi.getAll();
         console.log('[RouteOptimizer] shipments response:', getApiPayload(res));
         const items = (getApiData(res, []) || []).map((s) => ({
           ...s,
           status: normalizeStatus(s.status),
         }));
         setShipments(items);
-      })
-      .catch((err) => {
-        console.error('[RouteOptimizer] failed to load shipments:', err.message);
-        toast.error('Failed to load shipments');
-      });
+      } catch (firstErr) {
+        console.warn('[RouteOptimizer] first load failed, retrying:', firstErr.message);
+        try {
+          await wait(800);
+          const res = await shipmentsApi.getAll();
+          console.log('[RouteOptimizer] shipments response after retry:', getApiPayload(res));
+          const items = (getApiData(res, []) || []).map((s) => ({
+            ...s,
+            status: normalizeStatus(s.status),
+          }));
+          setShipments(items);
+        } catch (err) {
+          console.error('[RouteOptimizer] failed to load shipments:', err.message);
+          toast.error(`Failed to load shipments: ${err.message}`);
+        }
+      }
+    };
+
+    loadShipments();
   }, []);
 
   const handleShipmentSelect = (id) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MapView from '../../components/MapView/MapView';
 import ShipmentCard from '../../components/ShipmentCard/ShipmentCard';
-import { shipmentsApi, analyticsApi, alertsApi, getApiData, getApiPayload } from '../../services/api';
+import { shipmentsApi, analyticsApi, alertsApi, healthApi, getApiData, getApiPayload } from '../../services/api';
 import toast from 'react-hot-toast';
 import './dashboard.css';
 import { dashboardLegend } from './dashboardData';
@@ -9,6 +9,21 @@ import { ref, onValue } from 'firebase/database';
 import { database } from '../../config/firebase';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const withRetry = async (fn, retries = 2, delayMs = 900) => {
+  let lastErr;
+  for (let i = 0; i <= retries; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < retries) await wait(delayMs);
+    }
+  }
+  throw lastErr;
+};
+
 const StatCard = ({ icon, label, value, change, color }) => (
   <div className={`stat-card ${color}`}>
     <div className={`stat-icon ${color}`}>{icon}</div>
@@ -30,10 +45,13 @@ const Dashboard = () => {
 
   const fetchDataFallback = async () => {
     try {
+      // Wake backend first (Render cold-start friendly)
+      await withRetry(() => healthApi.check(), 1, 700);
+
       const [shipsResult, analyticsResult, alertsResult] = await Promise.allSettled([
-        shipmentsApi.getAll(),
-        analyticsApi.getSummary(),
-        alertsApi.getAll({ unreadOnly: true }),
+        withRetry(() => shipmentsApi.getAll(), 2, 900),
+        withRetry(() => analyticsApi.getSummary(), 2, 900),
+        withRetry(() => alertsApi.getAll({ unreadOnly: true }), 2, 900),
       ]);
 
       if (shipsResult.status === 'fulfilled') {

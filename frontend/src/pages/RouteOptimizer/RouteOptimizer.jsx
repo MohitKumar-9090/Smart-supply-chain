@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { aiApi, shipmentsApi, getApiData, getApiPayload } from '../../services/api';
+import { aiApi, shipmentsApi, getApiData, getApiPayload, API_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import './routeOptimizer.css';
 import { priorityOptions } from './routeOptimizerData';
@@ -72,13 +72,28 @@ const RouteOptimizer = () => {
       const payload = selectedId
         ? { shipmentId: selectedId, priority }
         : { origin, destination, cargo, issues, priority };
+      
+      // Log API call details for debugging
+      console.log('[RouteOptimizer] Calling API at:', `${API_URL}/ai/route`);
+      console.log('[RouteOptimizer] Payload:', payload);
+      
       const res = await aiApi.optimizeRoute(payload);
       console.log('[RouteOptimizer] optimization response:', getApiPayload(res));
-      setResult(getApiData(res, null));
+      
+      // Extract data with proper null safety
+      const optimizationData = getApiData(res, null);
+      if (!optimizationData) {
+        toast.error('Invalid response format from server');
+        setResult(null);
+        return;
+      }
+      
+      setResult(optimizationData);
       toast.success('Route optimization complete!');
     } catch (err) {
       console.error('[RouteOptimizer] optimization failed:', err.message);
       toast.error('Optimization failed: ' + err.message);
+      setResult(null);
     } finally {
       setLoading(false);
     }
@@ -214,17 +229,17 @@ const RouteOptimizer = () => {
                     </div>
                   </div>
 
-                  {/* Route Path */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                    {(result.recommendedRoute.path || []).map((waypoint, i, arr) => (
-                      <React.Fragment key={i}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 10px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-subtle)' }}>
-                          {i === 0 ? '🟢' : i === arr.length - 1 ? '🏁' : '⚓'} {waypoint}
-                        </span>
-                        {i < arr.length - 1 && <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>→</span>}
-                      </React.Fragment>
-                    ))}
-                  </div>
+              {/* Route Path */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                {((result.recommendedRoute?.path) || []).map((waypoint, i, arr) => (
+                  <React.Fragment key={i}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 10px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-subtle)' }}>
+                      {i === 0 ? '🟢' : i === arr.length - 1 ? '🏁' : '⚓'} {waypoint}
+                    </span>
+                    {i < arr.length - 1 && <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>→</span>}
+                  </React.Fragment>
+                ))}
+              </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
                     {[
@@ -238,10 +253,10 @@ const RouteOptimizer = () => {
                     ))}
                   </div>
 
-                  {result.recommendedRoute.pros?.length > 0 && (
+                  {result.recommendedRoute?.pros?.length > 0 && (
                     <div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase' }}>Advantages</div>
-                      {result.recommendedRoute.pros.map((pro, i) => (
+                      {(result.recommendedRoute.pros || []).map((pro, i) => (
                         <div key={i} style={{ fontSize: '12px', color: 'var(--accent-emerald)', marginBottom: '3px' }}>✓ {pro}</div>
                       ))}
                     </div>

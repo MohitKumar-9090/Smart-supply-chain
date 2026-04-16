@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { shipmentsApi, aiApi, getApiData, getApiPayload } from '../../services/api';
+import { shipmentsApi, aiApi, getApiData, getApiPayload, API_URL } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './predictions.css';
@@ -54,9 +54,21 @@ const Predictions = () => {
   const runPrediction = async (id) => {
     setRunning(prev => ({ ...prev, [id]: true }));
     try {
+      // Log API call details for debugging
+      console.log('[Predictions] Calling API at:', `${API_URL}/ai/predict`);
+      console.log('[Predictions] Shipment ID:', id);
+      
       const res = await aiApi.predict({ shipmentId: id });
       console.log('[Predictions] predict response:', getApiPayload(res));
-      setPredictions(prev => ({ ...prev, [id]: getApiData(res, {}) }));
+      
+      // Extract prediction data with proper null safety
+      const predictionData = getApiData(res, {});
+      if (!predictionData || !predictionData.delayProbability) {
+        toast.error('Invalid prediction response format');
+        return;
+      }
+      
+      setPredictions(prev => ({ ...prev, [id]: predictionData }));
     } catch (err) {
       console.error(`[Predictions] prediction failed for ${id}:`, err.message);
       toast.error(`Prediction failed for ${id}`);
@@ -102,9 +114,9 @@ const Predictions = () => {
         }}>
           {[
             { label: 'Analyzed', value: Object.keys(predictions).length, color: 'var(--text-primary)' },
-            { label: 'High Risk (>75%)', value: Object.values(predictions).filter(p => p.delayProbability >= 75).length, color: 'var(--accent-rose)' },
-            { label: 'At Risk (40-74%)', value: Object.values(predictions).filter(p => p.delayProbability >= 40 && p.delayProbability < 75).length, color: 'var(--accent-amber)' },
-            { label: 'On Track (<40%)', value: Object.values(predictions).filter(p => p.delayProbability < 40).length, color: 'var(--accent-emerald)' },
+            { label: 'High Risk (>75%)', value: (Object.values(predictions) || []).filter(p => p && p.delayProbability >= 75).length, color: 'var(--accent-rose)' },
+            { label: 'At Risk (40-74%)', value: (Object.values(predictions) || []).filter(p => p && p.delayProbability >= 40 && p.delayProbability < 75).length, color: 'var(--accent-amber)' },
+            { label: 'On Track (<40%)', value: (Object.values(predictions) || []).filter(p => p && p.delayProbability < 40).length, color: 'var(--accent-emerald)' },
           ].map(({ label, value, color }) => (
             <div key={label}>
               <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '24px', fontWeight: 800, color }}>{value}</div>
@@ -159,18 +171,18 @@ const Predictions = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ padding: '9px 12px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', fontSize: '12px' }}>
                       <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '10px', fontWeight: 600, marginBottom: '3px', textTransform: 'uppercase' }}>AI Reason</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{pred.primaryReason}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{pred.primaryReason || 'N/A'}</span>
                     </div>
                     <div style={{ padding: '9px 12px', background: 'rgba(16,185,129,0.08)', borderRadius: 'var(--radius-md)', fontSize: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                      <span style={{ color: '#34d399' }}>✅ {pred.recommendedAction?.substring(0, 80)}...</span>
+                      <span style={{ color: '#34d399' }}>✅ {(pred.recommendedAction || 'N/A').substring(0, 80)}...</span>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <div style={{ flex: 1, padding: '8px', textAlign: 'center', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>{pred.estimatedDelayHours}h</div>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>{pred.estimatedDelayHours || 0}h</div>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Delay</div>
                       </div>
                       <div style={{ flex: 1, padding: '8px', textAlign: 'center', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--accent-primary)' }}>{pred.confidence}%</div>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--accent-primary)' }}>{pred.confidence || 0}%</div>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Confidence</div>
                       </div>
                     </div>

@@ -76,6 +76,9 @@ export const aiApi = {
     api.post('/ai/chat', { message, conversationHistory }),
 };
 
+// Export API URL for component usage
+export const API_URL = API_BASE;
+
 // ─── Alerts ──────────────────────────────────
 export const alertsApi = {
   getAll: (params) => api.get('/alerts', { params }),

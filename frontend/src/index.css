@@ -1088,8 +1088,8 @@ body::after {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 8, 22, 0.85);
-  backdrop-filter: var(--blur-md);
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -1101,9 +1101,9 @@ body::after {
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 .modal {
-  background: rgba(5, 12, 30, 0.95);
-  backdrop-filter: var(--blur-xl);
-  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: var(--radius-xl);
   padding: 28px;
   width: 100%;
@@ -1111,7 +1111,7 @@ body::after {
   max-height: 90vh;
   overflow-y: auto;
   animation: slide-up 0.3s ease;
-  box-shadow: var(--shadow-heavy), 0 0 60px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.28), 0 0 40px rgba(96, 165, 250, 0.16);
   position: relative;
 }
 
@@ -1122,10 +1122,63 @@ body::after {
   left: 20%;
   right: 20%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
 }
 
 @keyframes slide-up { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.modal h2 {
+  color: #1f2937 !important;
+}
+
+.modal .form-label {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.modal .form-input,
+.modal .form-select,
+.modal .form-textarea {
+  background: rgba(255, 255, 255, 0.82);
+  color: #111827;
+  border-color: rgba(148, 163, 184, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal .form-input::placeholder,
+.modal .form-textarea::placeholder {
+  color: #6b7280;
+}
+
+.modal .form-input:focus,
+.modal .form-select:focus,
+.modal .form-textarea:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), 0 0 14px rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.modal .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 52%, #ec4899 100%);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28), 0 0 22px rgba(236, 72, 153, 0.2);
+}
+
+.modal .btn-primary:hover {
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.34), 0 0 28px rgba(236, 72, 153, 0.28);
+}
+
+.modal .btn-secondary {
+  background: rgba(255, 255, 255, 0.66);
+  color: #1f2937;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.modal .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.82);
+  color: #111827;
+  border-color: rgba(59, 130, 246, 0.28);
+}
 
 /* ─── Heatmap ────────────────────────────────── */
 .heatmap-grid {

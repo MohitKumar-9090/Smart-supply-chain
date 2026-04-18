@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { shipmentsApi, aiApi, getApiData, getApiPayload, API_URL } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './predictions.css';
 import { getRiskColor, getRiskLabel } from './predictionsData';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_URL = (import.meta.env.VITE_API_URL || 'https://smart-supply-chain.onrender.com')
+  .replace(/\/+$/, '')
+  .replace(/\/api$/, '');
+
+console.log('[Predictions] VITE_API_URL:', import.meta.env.VITE_API_URL);
 
 const Predictions = () => {
   const navigate = useNavigate();
@@ -17,61 +20,58 @@ const Predictions = () => {
   const [runningAll, setRunningAll] = useState(false);
 
   useEffect(() => {
-    const loadShipments = async () => {
+    const fetchData = async () => {
+      console.log('[Predictions] Fetching shipments from:', `${API_URL}/api/shipments`);
       try {
-        const res = await shipmentsApi.getAll();
-        const payload = getApiPayload(res);
-        const items = (getApiData(res, []) || []).map((s) => ({
+        const res = await fetch(`${API_URL}/api/shipments`);
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to load shipments');
+        }
+        const items = (json?.data || []).map((s) => ({
           ...s,
           status: normalizeStatus(s.status),
         }));
-        console.log('[Predictions] shipments response:', payload);
+        console.log('[Predictions] shipments response:', json);
         setShipments(items);
-      } catch (firstErr) {
-        console.warn('[Predictions] first load failed, retrying:', firstErr.message);
-        try {
-          await wait(800);
-          const res = await shipmentsApi.getAll();
-          const payload = getApiPayload(res);
-          const items = (getApiData(res, []) || []).map((s) => ({
-            ...s,
-            status: normalizeStatus(s.status),
-          }));
-          console.log('[Predictions] shipments response after retry:', payload);
-          setShipments(items);
-        } catch (err) {
-          console.error('[Predictions] failed to load shipments:', err.message);
-          toast.error(`Failed to load shipments: ${err.message}`);
-        }
+      } catch (err) {
+        console.error('[Predictions] failed to load shipments:', err);
+        toast.error(`Failed to load shipments: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
 
-    loadShipments();
+    fetchData();
   }, []);
 
   const runPrediction = async (id) => {
     setRunning(prev => ({ ...prev, [id]: true }));
     try {
-      // Log API call details for debugging
-      console.log('[Predictions] Calling API at:', `${API_URL}/ai/predict`);
+      console.log('[Predictions] Calling API at:', `${API_URL}/api/ai/predict`);
       console.log('[Predictions] Shipment ID:', id);
-      
-      const res = await aiApi.predict({ shipmentId: id });
-      console.log('[Predictions] predict response:', getApiPayload(res));
-      
-      // Extract prediction data with proper null safety
-      const predictionData = getApiData(res, {});
-      if (!predictionData || !predictionData.delayProbability) {
+
+      const res = await fetch(`${API_URL}/api/ai/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shipmentId: id }),
+      });
+      const json = await res.json();
+      console.log('[Predictions] predict response:', json);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Prediction request failed');
+      }
+
+      const predictionData = json?.data;
+      if (!predictionData || typeof predictionData.delayProbability !== 'number') {
         toast.error('Invalid prediction response format');
         return;
       }
-      
+
       setPredictions(prev => ({ ...prev, [id]: predictionData }));
     } catch (err) {
-      console.error(`[Predictions] prediction failed for ${id}:`, err.message);
-      toast.error(`Prediction failed for ${id}`);
+      console.error(`[Predictions] prediction failed for ${id}:`, err);
+      toast.error(`Prediction failed for ${id}: ${err.message}`);
     } finally {
       setRunning(prev => ({ ...prev, [id]: false }));
     }

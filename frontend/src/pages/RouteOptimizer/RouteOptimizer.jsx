@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { aiApi, shipmentsApi, getApiData, getApiPayload, API_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import './routeOptimizer.css';
 import { priorityOptions } from './routeOptimizerData';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_URL = (import.meta.env.VITE_API_URL || 'https://smart-supply-chain.onrender.com')
+  .replace(/\/+$/, '')
+  .replace(/\/api$/, '');
+
+console.log('[RouteOptimizer] VITE_API_URL:', import.meta.env.VITE_API_URL);
 
 const RouteOptimizer = () => {
   const [shipments, setShipments] = useState([]);
@@ -19,34 +22,27 @@ const RouteOptimizer = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadShipments = async () => {
+    const fetchData = async () => {
+      console.log('[RouteOptimizer] Fetching shipments from:', `${API_URL}/api/shipments`);
       try {
-        const res = await shipmentsApi.getAll();
-        console.log('[RouteOptimizer] shipments response:', getApiPayload(res));
-        const items = (getApiData(res, []) || []).map((s) => ({
+        const res = await fetch(`${API_URL}/api/shipments`);
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.message || 'Failed to load shipments');
+        }
+        console.log('[RouteOptimizer] shipments response:', json);
+        const items = (json?.data || []).map((s) => ({
           ...s,
           status: normalizeStatus(s.status),
         }));
         setShipments(items);
-      } catch (firstErr) {
-        console.warn('[RouteOptimizer] first load failed, retrying:', firstErr.message);
-        try {
-          await wait(800);
-          const res = await shipmentsApi.getAll();
-          console.log('[RouteOptimizer] shipments response after retry:', getApiPayload(res));
-          const items = (getApiData(res, []) || []).map((s) => ({
-            ...s,
-            status: normalizeStatus(s.status),
-          }));
-          setShipments(items);
-        } catch (err) {
-          console.error('[RouteOptimizer] failed to load shipments:', err.message);
-          toast.error(`Failed to load shipments: ${err.message}`);
-        }
+      } catch (err) {
+        console.error('[RouteOptimizer] failed to load shipments:', err);
+        toast.error(`Failed to load shipments: ${err.message}`);
       }
     };
 
-    loadShipments();
+    fetchData();
   }, []);
 
   const handleShipmentSelect = (id) => {
@@ -72,16 +68,22 @@ const RouteOptimizer = () => {
       const payload = selectedId
         ? { shipmentId: selectedId, priority }
         : { origin, destination, cargo, issues, priority };
-      
-      // Log API call details for debugging
-      console.log('[RouteOptimizer] Calling API at:', `${API_URL}/ai/route`);
+
+      console.log('[RouteOptimizer] Calling API at:', `${API_URL}/api/ai/route`);
       console.log('[RouteOptimizer] Payload:', payload);
-      
-      const res = await aiApi.optimizeRoute(payload);
-      console.log('[RouteOptimizer] optimization response:', getApiPayload(res));
-      
-      // Extract data with proper null safety
-      const optimizationData = getApiData(res, null);
+
+      const res = await fetch(`${API_URL}/api/ai/route`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      console.log('[RouteOptimizer] optimization response:', json);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Route optimization request failed');
+      }
+
+      const optimizationData = json?.data;
       if (!optimizationData) {
         toast.error('Invalid response format from server');
         setResult(null);
@@ -91,7 +93,7 @@ const RouteOptimizer = () => {
       setResult(optimizationData);
       toast.success('Route optimization complete!');
     } catch (err) {
-      console.error('[RouteOptimizer] optimization failed:', err.message);
+      console.error('[RouteOptimizer] optimization failed:', err);
       toast.error('Optimization failed: ' + err.message);
       setResult(null);
     } finally {

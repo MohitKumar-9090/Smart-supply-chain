@@ -114,7 +114,7 @@ const ShipmentDetail = ({ role = 'user' }) => {
             <p className="page-subtitle">{shipment.origin} → {shipment.destination}</p>
           </div>
           {role === 'admin' && (
-            <button className="btn btn-primary" onClick={handlePredict} disabled={predicting}>
+            <button className="btn btn-primary responsive-full-btn" onClick={handlePredict} disabled={predicting}>
               {predicting ? '⏳ Analyzing...' : '🤖 Run AI Prediction'}
             </button>
           )}
@@ -158,14 +158,14 @@ const ShipmentDetail = ({ role = 'user' }) => {
                   <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {icon} {label}
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>{value}</div>
+                  <div className="break-words" style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>{value}</div>
                 </div>
               ))}
             </div>
             {shipment.description && (
               <div style={{ marginTop: '16px', padding: '14px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '5px', textTransform: 'uppercase' }}>📝 Notes</div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{shipment.description}</div>
+                <div className="break-words" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{shipment.description}</div>
               </div>
             )}
           </div>
@@ -243,7 +243,7 @@ const ShipmentDetail = ({ role = 'user' }) => {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="shipment-stats-row">
                     <div style={{ flex: 1, padding: '10px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                         {prediction.estimatedDelayHours}h

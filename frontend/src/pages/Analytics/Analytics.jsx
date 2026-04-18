@@ -138,7 +138,7 @@ const Analytics = () => {
       <div className="page-content">
         <div style={{ display: 'grid', gap: '20px' }}>
           <div className="skeleton" style={{ height: '60px' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
+          <div className="analytics-loading-grid">
             {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: '120px' }} />)}
           </div>
           <div className="skeleton" style={{ height: '300px' }} />
@@ -204,7 +204,7 @@ const Analytics = () => {
             <option value="time">Time Priority</option>
             <option value="cost">Cost Priority</option>
           </select>
-          <button className="btn btn-primary" type="submit" disabled={routeLoading}>
+          <button className="btn btn-primary responsive-full-btn" type="submit" disabled={routeLoading}>
             {routeLoading ? 'Analyzing...' : 'Analyze Route'}
           </button>
         </form>
@@ -242,7 +242,7 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', marginBottom: '20px' }}>
+      <div className="analytics-main-grid">
         <div className="card">
           <div className="card-header">
             <div className="card-title">Delivery Performance Trend</div>
@@ -297,7 +297,7 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="analytics-split-grid">
         <div className="card">
           <div className="card-header">
             <div className="card-title">Route Efficiency</div>

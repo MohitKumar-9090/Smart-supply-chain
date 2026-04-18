@@ -20,11 +20,26 @@ const getRiskLabel = (conditionText = '') => {
   return { label: 'Medium', className: 'medium' };
 };
 
+const getRiskFromAlert = (alert = null) => {
+  const type = String(alert?.type || '').toUpperCase();
+  if (type === 'CRITICAL' || type === 'HIGH RISK' || type === 'HEAT ALERT') {
+    return { label: type || 'High', className: 'high' };
+  }
+  if (type === 'WARNING') {
+    return { label: type, className: 'medium' };
+  }
+  if (type === 'SAFE') {
+    return { label: 'SAFE', className: 'low' };
+  }
+  return null;
+};
+
 const WeatherAnalyze = () => {
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [weather, setWeather] = useState(null);
+  const [alert, setAlert] = useState(null);
 
   useEffect(() => {
     if (error) {
@@ -43,6 +58,7 @@ const WeatherAnalyze = () => {
     setLoading(true);
     setError('');
     setWeather(null);
+    setAlert(null);
 
     try {
       const endpoint = `${API_URL}/api/weather/${encodeURIComponent(trimmed)}`;
@@ -50,20 +66,24 @@ const WeatherAnalyze = () => {
       const weatherRes = await fetch(endpoint);
       const weatherJson = await weatherRes.json();
 
-      if (!weatherRes.ok || !weatherJson?.success || !weatherJson?.data) {
+      if (!weatherRes.ok || !weatherJson?.success || !weatherJson?.weather || !weatherJson?.alert) {
         throw new Error(weatherJson?.message || 'Weather data unavailable');
       }
 
-      const data = weatherJson.data;
+      const data = weatherJson.weather;
+      const alertData = weatherJson.alert;
       const condition = String(data.condition || 'Unknown');
-      const risk = getRiskLabel(condition);
-      console.log('[WeatherAnalyze] response:', data);
+      const risk = getRiskFromAlert(alertData) || getRiskLabel(condition);
+      console.log('[WeatherAnalyze] response:', { weather: data, alert: alertData });
 
       setWeather({
         place: data.location || trimmed,
-        temperature: Math.round(Number(data.temp || 0)),
-        humidity: Math.round(Number(data.humidity || 0)),
-        windSpeed: Math.round(Number(data.wind || 0)),
+        temperature: data.temp === null || data.temp === undefined ? '--' : Math.round(Number(data.temp)),
+        humidity:
+          typeof data.humidity === 'number'
+            ? Math.round(Number(data.humidity || 0))
+            : data.humidity || 'N/A',
+        windSpeed: data.wind === null || data.wind === undefined ? '--' : Math.round(Number(data.wind)),
         condition,
         conditionEmoji:
           condition.toLowerCase().includes('rain') || condition.toLowerCase().includes('storm')
@@ -72,7 +92,9 @@ const WeatherAnalyze = () => {
               ? '☁️'
               : '☀️',
         risk,
+        source: data.source || 'Unknown',
       });
+      setAlert(alertData);
     } catch (err) {
       setError(err.message || 'Failed to fetch weather');
       toast.error(err.message || 'Failed to fetch weather');
@@ -141,7 +163,7 @@ const WeatherAnalyze = () => {
               <div className="weather-result-head">
                 <div>
                   <div className="weather-location">{weather.place}</div>
-                  <div className="weather-condition">{weather.conditionEmoji} {weather.condition}</div>
+                  <div className="weather-condition">{weather.conditionEmoji} {weather.condition} · {weather.source}</div>
                 </div>
                 <div className="weather-temp">{weather.temperature}°C</div>
               </div>
@@ -161,9 +183,20 @@ const WeatherAnalyze = () => {
                 </div>
                 <div className="weather-stat">
                   <div className="weather-stat-label">Risk Indicator</div>
-                  <div className={`weather-risk ${weather.risk.className}`}>{weather.risk.label}</div>
+                  <div className={`weather-risk ${weather.risk.className}`}>
+                    {alert?.type || weather.risk.label}
+                  </div>
                 </div>
               </div>
+
+              {alert && (
+                <div className="weather-alert-line">
+                  <span className={`weather-alert-dot ${weather.risk.className}`} />
+                  <span className="weather-alert-text">
+                    {alert.title}: {alert.message}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

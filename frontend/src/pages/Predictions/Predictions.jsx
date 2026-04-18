@@ -113,22 +113,19 @@ const Predictions = () => {
           <h1 className="page-title">🤖 AI Predictions</h1>
           <p className="page-subtitle">Gemini-powered delay prediction for all active shipments</p>
         </div>
-        <button className="btn btn-primary" onClick={runAllPredictions} disabled={runningAll || loading}>
+        <button className="btn btn-primary responsive-full-btn" onClick={runAllPredictions} disabled={runningAll || loading}>
           {runningAll ? '⏳ Running All...' : '🚀 Run All Predictions'}
         </button>
       </div>
 
       {/* Summary Banner */}
       {Object.keys(predictions).length > 0 && (
-        <div style={{
+        <div className="predictions-summary" style={{
           padding: '16px 20px',
           background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(99,102,241,0.06))',
           border: '1px solid var(--border-medium)',
           borderRadius: 'var(--radius-lg)',
           marginBottom: '20px',
-          display: 'flex',
-          gap: '24px',
-          flexWrap: 'wrap',
         }}>
           {[
             { label: 'Analyzed', value: Object.keys(predictions).length, color: 'var(--text-primary)' },
@@ -212,7 +209,7 @@ const Predictions = () => {
                 )}
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="predictions-card-actions">
                   <button
                     className="btn btn-primary btn-sm"
                     style={{ flex: 1 }}

@@ -118,7 +118,7 @@ const Shipments = () => {
           <p className="page-subtitle">{shipments.length} active shipments tracked globally</p>
         </div>
         {isAdmin && (
-          <button className="btn btn-primary" onClick={openCreateModal}>
+          <button className="btn btn-primary responsive-full-btn" onClick={openCreateModal}>
             ＋ New Shipment
           </button>
         )}
@@ -126,9 +126,9 @@ const Shipments = () => {
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px 20px' }}>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="shipments-filter-row">
           {/* Search */}
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <div className="shipments-search-wrap">
             <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px' }}>🔍</span>
             <input
               className="form-input"
@@ -140,7 +140,7 @@ const Shipments = () => {
           </div>
 
           {/* Status tabs */}
-          <div className="tabs" style={{ minWidth: 'fit-content' }}>
+          <div className="tabs shipments-status-tabs">
             {['all', 'on-time', 'risk', 'delayed'].map(s => (
               <button
                 key={s}
@@ -193,7 +193,7 @@ const Shipments = () => {
                       <div className="secondary-text">{s.id}</div>
                     </td>
                     <td>
-                      <div className="secondary-text" style={{ maxWidth: '200px' }}>
+                      <div className="secondary-text break-words" style={{ maxWidth: '200px' }}>
                         <span style={{ color: 'var(--text-secondary)' }}>🟢 {s.origin}</span><br />
                         <span style={{ color: 'var(--text-muted)' }}>🏁 {s.destination}</span>
                       </div>
@@ -220,7 +220,7 @@ const Shipments = () => {
                     </td>
                     <td>{getStatusBadge(s.status)}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                      <div className="shipments-row-actions" onClick={e => e.stopPropagation()}>
                         <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/shipments/${s.id}`)}>
                           View
                         </button>
@@ -310,7 +310,7 @@ const Shipments = () => {
                 <label className="form-label">Description</label>
                 <textarea className="form-textarea" placeholder="Additional notes..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
               </div>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{editMode ? 'Save Changes' : 'Create Shipment'}</button>
               </div>

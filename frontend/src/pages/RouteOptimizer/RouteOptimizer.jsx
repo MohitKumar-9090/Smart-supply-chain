@@ -263,7 +263,7 @@ const RouteOptimizer = () => {
                 ))}
               </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                  <div className="route-metrics-grid">
                     {[
                       { label: '⏱️ Time', value: result.recommendedRoute.estimatedTime },
                       { label: '💰 Cost', value: result.recommendedRoute.estimatedCost },
@@ -292,7 +292,7 @@ const RouteOptimizer = () => {
                   <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     🔀 Alternative Routes
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                  <div className="route-alternatives-grid">
                     {result.alternativeRoutes.map((route, i) => (
                       <div key={i} className="route-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>

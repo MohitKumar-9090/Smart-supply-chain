@@ -79,9 +79,9 @@ const Alerts = ({ onAlertCountChange }) => {
             {unreadCount > 0 ? `${unreadCount} unread alert${unreadCount > 1 ? 's' : ''} require attention` : 'All alerts reviewed'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="alerts-header-actions">
           {unreadCount > 0 && (
-            <button className="btn btn-secondary" onClick={handleMarkAllRead}>
+            <button className="btn btn-secondary responsive-full-btn" onClick={handleMarkAllRead}>
               ✓ Mark All Read
             </button>
           )}
@@ -90,7 +90,7 @@ const Alerts = ({ onAlertCountChange }) => {
 
       {/* Filter Tabs */}
       <div className="card" style={{ marginBottom: '20px', padding: '14px 18px' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="alerts-filter-tabs">
           {[
             { key: 'all', label: `All (${safeAlerts.length})` },
             { key: 'unread', label: `Unread (${unreadCount})` },
@@ -137,7 +137,7 @@ const Alerts = ({ onAlertCountChange }) => {
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
                       {alert.title}
@@ -150,14 +150,14 @@ const Alerts = ({ onAlertCountChange }) => {
                     {alert.message}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     {alert.trackingNumber && <span>📦 {alert.trackingNumber}</span>}
                     <span>🕒 {new Date(alert.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }} onClick={e => e.stopPropagation()}>
+                <div className="alerts-row-actions" onClick={e => e.stopPropagation()}>
                   {!alert.read && (
                     <button className="btn btn-secondary btn-sm" onClick={(e) => handleMarkRead(alert.id, e)}>
                       ✓ Read

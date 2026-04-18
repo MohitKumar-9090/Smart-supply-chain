@@ -60,6 +60,7 @@ app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/weather', require('./routes/weather'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

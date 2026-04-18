@@ -20,6 +20,7 @@ import Alerts from './pages/Alerts/Alerts';
 import Chat from './pages/Chat/Chat';
 import RouteOptimizer from './pages/RouteOptimizer/RouteOptimizer';
 import Predictions from './pages/Predictions/Predictions';
+import WeatherAnalyze from './pages/WeatherAnalyze/WeatherAnalyze';
 
 // Services
 import { alertsApi, getApiPayload } from './services/api';
@@ -33,6 +34,7 @@ const PAGE_META = {
   '/chat': { title: 'AI Assistant', subtitle: 'Powered by Google Gemini' },
   '/routes': { title: 'Route Optimizer', subtitle: 'AI-powered path optimization' },
   '/predictions': { title: 'AI Predictions', subtitle: 'Delay forecasting engine' },
+  '/weather': { title: 'Weather Analyze', subtitle: 'Live weather intelligence for shipment risk' },
 };
 
 const AppLayout = ({ children, alertCount, onAlertCountChange }) => {
@@ -155,6 +157,13 @@ function App() {
           <ProtectedRoute role={role} setRole={setRole}>
             <AppLayout alertCount={alertCount} onAlertCountChange={setAlertCount}>
               <Predictions />
+            </AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/weather" element={
+          <ProtectedRoute role={role} setRole={setRole}>
+            <AppLayout alertCount={alertCount} onAlertCountChange={setAlertCount}>
+              <WeatherAnalyze />
             </AppLayout>
           </ProtectedRoute>
         } />

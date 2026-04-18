@@ -9,4 +9,5 @@ export const navItems = [
   { label: 'Alerts', path: '/alerts', icon: '🔔' },
   { section: 'ASSISTANT' },
   { label: 'AI Chat', path: '/chat', icon: '💬' },
+  { label: 'Weather Analyze', path: '/weather', icon: '☁️' },
 ];

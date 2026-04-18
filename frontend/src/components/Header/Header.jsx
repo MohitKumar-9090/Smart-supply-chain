@@ -85,7 +85,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
           onClick={() => navigate('/alerts')}
           title="View Alerts"
         >
-          <BarChart3 size={16} aria-hidden="true" />
+          <BarChart3 size={16} className="header-icon" aria-hidden="true" />
           {alertCount > 0 && <span className="alert-dot" />}
         </button>
 
@@ -96,7 +96,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
             onClick={() => setSettingsOpen((v) => !v)}
             aria-expanded={settingsOpen}
           >
-            <Settings size={16} aria-hidden="true" />
+            <Settings size={16} className="header-icon" aria-hidden="true" />
           </button>
 
           {settingsOpen && (
@@ -113,7 +113,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
         </div>
 
         <div className="user-avatar" title="Admin/User">
-          <ShieldCheck size={16} aria-hidden="true" />
+          <ShieldCheck size={16} className="header-icon" aria-hidden="true" />
         </div>
 
         <div className="live-status-pill">

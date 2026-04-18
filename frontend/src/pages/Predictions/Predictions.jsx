@@ -50,11 +50,29 @@ const Predictions = () => {
     try {
       console.log('[Predictions] Calling API at:', `${API_URL}/api/ai/predict`);
       console.log('[Predictions] Shipment ID:', id);
+      const shipment = (shipments || []).find((s) => s.id === id);
+      const payload = shipment
+        ? {
+            shipmentId: id,
+            trackingNumber: shipment.trackingNumber,
+            origin: shipment.origin,
+            destination: shipment.destination,
+            cargo: shipment.cargo,
+            weight: shipment.weight,
+            carrier: shipment.carrier,
+            weather: shipment.weather,
+            traffic: shipment.traffic,
+            estimatedDelivery: shipment.estimatedDelivery,
+            description: shipment.description,
+            riskLevel: shipment.riskLevel,
+          }
+        : { shipmentId: id };
+      console.log('[Predictions] Payload:', payload);
 
       const res = await fetch(`${API_URL}/api/ai/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipmentId: id }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       console.log('[Predictions] predict response:', json);

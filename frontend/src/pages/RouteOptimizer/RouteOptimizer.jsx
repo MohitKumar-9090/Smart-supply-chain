@@ -4,6 +4,18 @@ import './routeOptimizer.css';
 import { priorityOptions } from './routeOptimizerData';
 
 const normalizeStatus = (status) => String(status || 'on-time').toLowerCase().replace(/\s+/g, '-');
+const extractWeatherAndTraffic = (issuesText = '') => {
+  const parts = String(issuesText)
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  return {
+    weather: parts[0] || issuesText || 'Clear',
+    traffic: parts[1] || issuesText || 'Normal',
+  };
+};
+
 const API_URL = (import.meta.env.VITE_API_URL || 'https://smart-supply-chain.onrender.com')
   .replace(/\/+$/, '')
   .replace(/\/api$/, '');
@@ -65,9 +77,17 @@ const RouteOptimizer = () => {
     setLoading(true);
     setResult(null);
     try {
-      const payload = selectedId
-        ? { shipmentId: selectedId, priority }
-        : { origin, destination, cargo, issues, priority };
+      const { weather, traffic } = extractWeatherAndTraffic(issues);
+      const payload = {
+        shipmentId: selectedId || undefined,
+        origin,
+        destination,
+        cargoType: cargo,
+        weather,
+        traffic,
+        issues,
+        priority,
+      };
 
       console.log('[RouteOptimizer] Calling API at:', `${API_URL}/api/ai/route`);
       console.log('[RouteOptimizer] Payload:', payload);

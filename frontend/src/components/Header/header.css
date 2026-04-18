@@ -4,6 +4,31 @@
   .header { left: 0; }
 }
 
+.header .header-btn,
+.header .user-avatar {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header .header-btn {
+  color: #e5edf8;
+}
+
+.header .user-avatar {
+  color: #f8fbff;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+}
+
+.header .header-btn:hover,
+.header .user-avatar:hover {
+  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .settings-wrap {
   position: relative;
 }

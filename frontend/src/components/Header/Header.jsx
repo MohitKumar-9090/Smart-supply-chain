@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart3, Settings, ShieldCheck } from 'lucide-react';
 import { healthApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import './header.css';
@@ -84,7 +85,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
           onClick={() => navigate('/alerts')}
           title="View Alerts"
         >
-          AL
+          <BarChart3 size={16} aria-hidden="true" />
           {alertCount > 0 && <span className="alert-dot" />}
         </button>
 
@@ -95,7 +96,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
             onClick={() => setSettingsOpen((v) => !v)}
             aria-expanded={settingsOpen}
           >
-            ST
+            <Settings size={16} aria-hidden="true" />
           </button>
 
           {settingsOpen && (
@@ -112,7 +113,7 @@ const Header = ({ title, subtitle, alertCount, onMenuClick }) => {
         </div>
 
         <div className="user-avatar" title="Admin/User">
-          AD
+          <ShieldCheck size={16} aria-hidden="true" />
         </div>
 
         <div className="live-status-pill">
